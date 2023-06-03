@@ -45,11 +45,12 @@ fn value_to_object(val: &JsonValue, py: Python<'_>) -> PyObject {
     }
 }
 
-    /// Convert to UTC `OffsetDateTime`
-pub fn into_utc(timestamp_micros :i64) -> OffsetDateTime {
+/// Convert to UTC `OffsetDateTime`
+pub fn into_utc(timestamp_micros: i64) -> OffsetDateTime {
     let timestamp_nanos = timestamp_micros as i128 * 1000;
-    let utc_datetime = OffsetDateTime::from_unix_timestamp_nanos(timestamp_nanos)
-        .expect("valid UNIX timestamp");
+    let utc_datetime =
+        OffsetDateTime::from_unix_timestamp_nanos(timestamp_nanos)
+            .expect("valid UNIX timestamp");
     debug_assert_eq!(UtcOffset::UTC, utc_datetime.offset());
     utc_datetime
 }
@@ -88,7 +89,6 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
                 .collect();
             inner.to_object(py)
         }
-
     })
 }
 
@@ -108,7 +108,6 @@ fn value_to_string(value: &Value) -> String {
         Value::JsonObject(json_object) => {
             serde_json::to_string(&json_object).unwrap()
         }
- 
     }
 }
 

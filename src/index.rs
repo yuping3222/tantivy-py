@@ -280,10 +280,9 @@ impl Index {
     /// for ever.
     fn searcher(&self, py: Python) -> Searcher {
         Searcher {
-            inner: py.allow_threads(|| self.reader.searcher())
-            }
+            inner: py.allow_threads(|| self.reader.searcher()),
+        }
     }
-
 
     /// Check if the given path contains an existing index.
     /// Args:
