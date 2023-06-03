@@ -124,7 +124,7 @@ impl IndexWriter {
             Value::U64(num) => Term::from_field_u64(field, num),
             Value::I64(num) => Term::from_field_i64(field, num),
             Value::F64(num) => Term::from_field_f64(field, num),
-            Value::Date(d) => Term::from_field_date(field, d),
+            Value::Date(d) => Term::from_field_date(field, &d),
             Value::Facet(facet) => Term::from_facet(field, &facet),
             Value::Bytes(_) => {
                 return Err(exceptions::PyValueError::new_err(format!(
@@ -141,8 +141,7 @@ impl IndexWriter {
                     "Field `{field_name}` is json object type not deletable."
                 )))
             },
-            Value::Bool(b) => Term::from_field_bool(field, b),
-            Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
+
         };
         Ok(self.inner_index_writer.delete_term(term))
     }
@@ -281,9 +280,10 @@ impl Index {
     /// for ever.
     fn searcher(&self, py: Python) -> Searcher {
         Searcher {
-            inner: py.allow_threads(|| self.reader.searcher()),
-        }
+            inner: py.allow_threads( self.reader.searcher().take())
+            }
     }
+
 
     /// Check if the given path contains an existing index.
     /// Args:

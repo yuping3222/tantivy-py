@@ -20,7 +20,7 @@ use std::{
     fmt,
 };
 use tantivy::schema::Value;
-
+use time::{OffsetDateTime, UtcOffset};
 fn value_to_object(val: &JsonValue, py: Python<'_>) -> PyObject {
     match val {
         JsonValue::Null => py.None(),
@@ -45,6 +45,15 @@ fn value_to_object(val: &JsonValue, py: Python<'_>) -> PyObject {
     }
 }
 
+    /// Convert to UTC `OffsetDateTime`
+pub fn into_utc(timestamp_micros :i64) -> OffsetDateTime {
+    let timestamp_nanos = timestamp_micros as i128 * 1000;
+    let utc_datetime = OffsetDateTime::from_unix_timestamp_nanos(timestamp_nanos)
+        .expect("valid UNIX timestamp");
+    debug_assert_eq!(UtcOffset::UTC, utc_datetime.offset());
+    utc_datetime
+}
+
 fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
     Ok(match value {
         Value::Str(text) => text.into_py(py),
@@ -57,7 +66,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             unimplemented!();
         }
         Value::Date(d) => {
-            let utc = d.into_utc();
+            let utc = into_utc(d.timestamp_micros());
             PyDateTime::new(
                 py,
                 utc.year(),
@@ -79,8 +88,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
                 .collect();
             inner.to_object(py)
         }
-        Value::Bool(b) => b.into_py(py),
-        Value::IpAddr(i) => (*i).to_string().into_py(py),
+
     })
 }
 
@@ -100,8 +108,7 @@ fn value_to_string(value: &Value) -> String {
         Value::JsonObject(json_object) => {
             serde_json::to_string(&json_object).unwrap()
         }
-        Value::Bool(b) => format!("{b}"),
-        Value::IpAddr(i) => format!("{}", *i),
+ 
     }
 }
 
@@ -187,10 +194,12 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
             )
             .single()
             .unwrap();
-        return Ok(Value::Date(tv::DateTime::from_timestamp_secs(
-            datetime.timestamp(),
+        return Ok(Value::Date(tv::DateTime::from_utc(
+            chrono::NaiveDateTime::from_timestamp(datetime.timestamp(), 0),
+            Utc,
         )));
     }
+
     if let Ok(facet) = any.extract::<Facet>() {
         return Ok(Value::Facet(facet.inner));
     }
@@ -332,7 +341,10 @@ impl Document {
         add_value(
             self,
             field_name,
-            tv::DateTime::from_timestamp_secs(datetime.timestamp()),
+            tv::DateTime::from_utc(
+                chrono::NaiveDateTime::from_timestamp(datetime.timestamp(), 0),
+                Utc,
+            ),
         );
     }
 
