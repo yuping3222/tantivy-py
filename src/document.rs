@@ -14,6 +14,7 @@ use chrono::{offset::TimeZone, Utc};
 use tantivy as tv;
 
 use crate::{facet::Facet, to_pyerr};
+use core::f32;
 use serde_json::Value as JsonValue;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -82,13 +83,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             .into_py(py)
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
-        Value::JsonObject(json_object) => {
-            let inner: HashMap<_, _> = json_object
-                .iter()
-                .map(|(k, v)| (k, value_to_object(v, py)))
-                .collect();
-            inner.to_object(py)
-        }
+        Value::Vector(elements) => PyList::new(py, elements).into_py(py),
     })
 }
 
@@ -105,8 +100,8 @@ fn value_to_string(value: &Value) -> String {
             // TODO implement me
             unimplemented!();
         }
-        Value::JsonObject(json_object) => {
-            serde_json::to_string(&json_object).unwrap()
+        Value::Vector(vec) => {
+            format!("{:?}", vec)
         }
     }
 }
@@ -364,16 +359,16 @@ impl Document {
         add_value(self, field_name, bytes);
     }
 
-    /// Add a bytes value to the document.
-    ///
-    /// Args:
-    ///     field_name (str): The field for which we are adding the bytes.
-    ///     value (str): The json object that will be added to the document.
-    fn add_json(&mut self, field_name: String, json: &str) {
-        let json_object: serde_json::Value =
-            serde_json::from_str(json).unwrap();
-        add_value(self, field_name, json_object);
-    }
+    // /// Add a bytes value to the document.
+    // ///
+    // /// Args:
+    // ///     field_name (str): The field for which we are adding the bytes.
+    // ///     value (str): The json object that will be added to the document.
+    // fn add_json(&mut self, field_name: String, json: &str) {
+    //     let json_object: serde_json::Value =
+    //         serde_json::from_str(json).unwrap();
+    //     add_value(self, field_name, json_object);
+    // }
 
     /// Returns the number of added fields that have been added to the document
     #[getter]

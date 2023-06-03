@@ -136,9 +136,11 @@ impl IndexWriter {
                     "Field `{field_name}` is pretokenized. This is not authorized for delete."
                 )))
             }
-            Value::JsonObject(_) => {
+            Value::Vector(_) => {
+
+                //TODO:fengzhi
                 return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is json object type not deletable."
+                    "Field `{field_name}` is Vector object type not deletable."
                 )))
             },
 
@@ -258,11 +260,11 @@ impl Index {
         };
         let builder = self.index.reader_builder();
         let builder = builder.reload_policy(reload_policy);
-        let builder = if num_warmers > 0 {
-            builder.num_warming_threads(num_warmers)
-        } else {
-            builder
-        };
+        // let builder = if num_warmers > 0 {
+        //     builder.num_warming_threads(num_warmers)
+        // } else {
+        //     builder
+        // };
 
         self.reader = builder.try_into().map_err(to_pyerr)?;
         Ok(())

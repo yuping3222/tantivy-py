@@ -6,7 +6,8 @@ use tantivy::schema;
 
 use crate::schema::Schema;
 use std::sync::{Arc, RwLock};
-use tantivy::schema::{NumericOptions, INDEXED};
+use tantivy::schema::{IntOptions, INDEXED};
+use tantivy::schema::{VectorOptions};
 
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
@@ -41,6 +42,28 @@ impl SchemaBuilder {
         }
     }
 
+    #[pyo3(signature = (name, dim,stored = true, indexed = true))]
+    fn add_vector_field(&mut self,
+        name: &str,
+        dim :usize,
+        stored: bool,
+        indexed: bool)-> PyResult<Self> {
+            let builder = &mut self.builder;
+            let vector_options = VectorOptions{
+                dimension: dim,
+                indexed: indexed,
+                stored: stored
+            };
+            
+            if let Some(builder) = builder.write().unwrap().as_mut() {
+                builder.add_vector_field(name, vector_options);
+            } else {
+                return Err(exceptions::PyValueError::new_err(
+                    "Schema builder object isn't valid anymore.",
+                ));
+            }
+            Ok(self.clone())
+    }
     /// Add a new text field to the schema.
     ///
     /// Args:
@@ -226,7 +249,7 @@ impl SchemaBuilder {
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        let mut opts = NumericOptions::default();
+        let mut opts = IntOptions::default();
         if stored {
             opts = opts.set_stored();
         }
@@ -279,36 +302,36 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[pyo3(signature = (
-        name,
-        stored = false,
-        tokenizer_name = TOKENIZER,
-        index_option = RECORD
-    ))]
-    fn add_json_field(
-        &mut self,
-        name: &str,
-        stored: bool,
-        tokenizer_name: &str,
-        index_option: &str,
-    ) -> PyResult<Self> {
-        let builder = &mut self.builder;
-        let options = SchemaBuilder::build_text_option(
-            stored,
-            tokenizer_name,
-            index_option,
-        )?;
+    // #[pyo3(signature = (
+    //     name,
+    //     stored = false,
+    //     tokenizer_name = TOKENIZER,
+    //     index_option = RECORD
+    // ))]
+    // fn add_json_field(
+    //     &mut self,
+    //     name: &str,
+    //     stored: bool,
+    //     tokenizer_name: &str,
+    //     index_option: &str,
+    // ) -> PyResult<Self> {
+    //     let builder = &mut self.builder;
+    //     let options = SchemaBuilder::build_text_option(
+    //         stored,
+    //         tokenizer_name,
+    //         index_option,
+    //     )?;
 
-        if let Some(builder) = builder.write().unwrap().as_mut() {
-            builder.add_json_field(name, options);
-        } else {
-            return Err(exceptions::PyValueError::new_err(
-                "Schema builder object isn't valid anymore.",
-            ));
-        }
+    //     if let Some(builder) = builder.write().unwrap().as_mut() {
+    //         builder.add_json_field(name, options);
+    //     } else {
+    //         return Err(exceptions::PyValueError::new_err(
+    //             "Schema builder object isn't valid anymore.",
+    //         ));
+    //     }
 
-        Ok(self.clone())
-    }
+    //     Ok(self.clone())
+    // }
 
     /// Add a Facet field to the schema.
     /// Args:
@@ -369,8 +392,8 @@ impl SchemaBuilder {
         stored: bool,
         indexed: bool,
         fast: Option<&str>,
-    ) -> PyResult<schema::NumericOptions> {
-        let opts = schema::NumericOptions::default();
+    ) -> PyResult<schema::IntOptions> {
+        let opts = schema::IntOptions::default();
 
         let opts = if stored { opts.set_stored() } else { opts };
         let opts = if indexed { opts.set_indexed() } else { opts };
