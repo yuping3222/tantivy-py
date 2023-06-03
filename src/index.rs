@@ -280,7 +280,7 @@ impl Index {
     /// for ever.
     fn searcher(&self, py: Python) -> Searcher {
         Searcher {
-            inner: py.allow_threads( self.reader.searcher().take())
+            inner: py.allow_threads(|| self.reader.searcher())
             }
     }
 

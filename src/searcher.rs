@@ -10,7 +10,7 @@ use tantivy::collector::{Count, MultiCollector, TopDocs};
 /// A Searcher is used to search the index given a prepared Query.
 #[pyclass]
 pub(crate) struct Searcher {
-    pub(crate) inner: tv::Searcher,
+    pub(crate) inner: tv::LeasedItem<tv::Searcher>,
 }
 
 #[derive(Clone)]
